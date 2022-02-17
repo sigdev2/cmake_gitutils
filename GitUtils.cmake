@@ -35,6 +35,55 @@ function(__GitUtils_ResetIncludeMapItem PROJECT)
 endfunction()
 
 
+function(__GitUtils_DefineDependencyMapItem PROJECT)
+    get_property(HAS_PROJECT_DEPENDS GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_DEPENDENCY_MAP_${PROJECT} DEFINED)
+    if (NOT ${HAS_PROJECT_DEPENDS})
+        define_property(GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_DEPENDENCY_MAP_${PROJECT}
+                        BRIEF_DOCS "Project ${PROJECT} git repository dependencies property"
+                        FULL_DOCS "Project ${PROJECT} git repository property with dependencies list")
+        set_property(GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_DEPENDENCY_MAP_${PROJECT} "")
+    endif()
+endfunction()
+
+
+function(__GitUtils_AppendDependencyMapItem PROJECT DEPEND)
+    __GitUtils_DefineDependencyMapItem(PROJECT)
+    get_property(PROJECT_DEPENDS_LIST GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_DEPENDENCY_MAP_${PROJECT})
+    if (NOT (${DEPEND} IN_LIST PROJECT_DEPENDS_LIST))
+        list(APPEND PROJECT_DEPENDS_LIST ${DEPEND})
+        set_property(GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_DEPENDENCY_MAP_${PROJECT} PROJECT_DEPENDS_LIST)
+    endif()
+endfunction()
+
+
+function(__GitUtils_RecurciveDependency PROJECT DEPENDENCY_INCLUDE_LIST)
+    if (NOT DEFINED ${DEPENDENCY_INCLUDE_LIST})
+        set(${DEPENDENCY_INCLUDE_LIST} "" PARENT_SCOPE)
+    endif()
+
+    get_property(HAS_DEPEND GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_DEPENDENCY_MAP_${PROJECT} DEFINED)
+    if (${HAS_DEPEND})
+        get_property(DEPEND_PROJECTS_LIST GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_DEPENDENCY_MAP_${PROJECT})
+        foreach(DEPEND ${DEPEND_PROJECTS_LIST})
+            __GitUtils_RecurciveDependency(${DEPEND} ${DEPENDENCY_INCLUDE_LIST})
+            set(${DEPENDENCY_INCLUDE_LIST} ${${DEPENDENCY_INCLUDE_LIST}} PARENT_SCOPE)
+        endforeach()
+    endif()
+
+    get_property(HAS_DEPEND_INCLUDE GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${DEPEND} DEFINED)
+    if (NOT ${HAS_DEPEND_INCLUDE})
+        message(FATAL_ERROR "[ERROR GIT] repository project ${DEPEND} must be defined before set as depend for target")
+    endif()
+    get_property(DEPEND_PROJECT_INCLUDE_LIST GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${DEPEND})
+    foreach(DEPEND_INCLUDE ${DEPEND_PROJECT_INCLUDE_LIST})
+        if (NOT (${DEPEND_INCLUDE} IN_LIST ${DEPENDENCY_INCLUDE_LIST}))
+            list(APPEND ${DEPENDENCY_INCLUDE_LIST} ${DEPEND_INCLUDE})
+            set(${DEPENDENCY_INCLUDE_LIST} ${${DEPENDENCY_INCLUDE_LIST}} PARENT_SCOPE)
+        endif()
+    endforeach()
+endfunction()
+
+
 function(GitUtils_Define PROJECT GIT_URL)
     set(ARGS_OPT FREEZE PULL LOCAL OVERRIDE)
     set(ARGS_ONE TAG FOLDER INCLUDE BUILD)
@@ -112,40 +161,21 @@ function(GitUtils_Define PROJECT GIT_URL)
 endfunction()
 
 
-# TODO: Just map dependencies for project
-function(GitRepositoryDependencies PROJECT)
+function(GitUtils_Depends PROJECT)
     set(ARGS_OPT "")
-    set(ARGS_ONE TAG)
+    set(ARGS_ONE "")
     set(ARGS_LIST DEPENDS)
     cmake_parse_arguments(GIT_ARGS "${ARGS_OPT}" "${ARGS_ONE}" "${ARGS_LIST}" ${ARGV})
-    
-    set(FULL_PROJECT_NAME ${PROJECT})
-    if (DEFINED GIT_ARGS_TAG)
-        set(FULL_PROJECT_NAME ${FULL_PROJECT_NAME}_${GIT_ARGS_TAG})
-    endif()
-    
-    _GitUtils_DefineIncludeMapItem(${PROJECT})
-    get_property(TARGET_PROJECT_INCLUDE_LIST GLOBAL PROPERTY GLOBAL_GIT_REPOSITORY_PROJECT_INCLUDE_MAP_${FULL_PROJECT_NAME})
+
+    message("[DEPENDENCY GIT] ${PROJECT}: ${GIT_ARGS_DEPENDS}")
 
     foreach(DEPEND ${GIT_ARGS_DEPENDS})
-        get_property(HAS_DEPEND_INCLUDE GLOBAL PROPERTY GLOBAL_GIT_REPOSITORY_PROJECT_INCLUDE_MAP_${DEPEND} DEFINED)
-        if (NOT ${HAS_DEPEND_INCLUDE})
-            message(FATAL_ERROR "Git repository project ${DEPEND} must be defined before set as depend")
-        endif()
-        get_property(DEPEND_PROJECT_INCLUDE_LIST GLOBAL PROPERTY GLOBAL_GIT_REPOSITORY_PROJECT_INCLUDE_MAP_${DEPEND})
-        
-        foreach(DEPEND_INCLUDE ${DEPEND_PROJECT_INCLUDE_LIST})
-            if (NOT (${DEPEND} IN_LIST TARGET_PROJECT_INCLUDE_LIST))
-                list(PREPEND TARGET_PROJECT_INCLUDE_LIST ${DEPEND})
-            endif()
-        endforeach()
+        __GitUtils_AppendDependencyMapItem(PROJECT ${DEPEND})
     endforeach()
-    set_property(GLOBAL PROPERTY GLOBAL_GIT_REPOSITORY_PROJECT_INCLUDE_MAP_${FULL_PROJECT_NAME} TARGET_PROJECT_INCLUDE_LIST)
 endfunction()
 
 
-# TODO: Collect all includes for dependencies map
-function(GitRepositoryTargetDependencies TARGET)
+function(GitUtils_TargetInclude TARGET)
     set(ARGS_OPT "")
     set(ARGS_ONE "")
     set(ARGS_LIST DEPENDS)
@@ -153,20 +183,14 @@ function(GitRepositoryTargetDependencies TARGET)
     
     set(TARGET_DEPENDS "")
     foreach(DEPEND ${GIT_ARGS_DEPENDS})
-        get_property(HAS_DEPEND_INCLUDE GLOBAL PROPERTY GLOBAL_GIT_REPOSITORY_PROJECT_INCLUDE_MAP_${DEPEND} DEFINED)
-        if (NOT ${HAS_DEPEND_INCLUDE})
-            message(FATAL_ERROR "Git repository project ${DEPEND} must be defined before set as depend for target")
-        endif()
-        get_property(DEPEND_PROJECT_INCLUDE_LIST GLOBAL PROPERTY GLOBAL_GIT_REPOSITORY_PROJECT_INCLUDE_MAP_${DEPEND})
-        
-        foreach(DEPEND_INCLUDE ${DEPEND_PROJECT_INCLUDE_LIST})
-            if (NOT (${DEPEND_INCLUDE} IN_LIST TARGET_DEPENDS))
-                list(APPEND TARGET_DEPENDS ${DEPEND_INCLUDE})
-            endif()
-        endforeach()
+        __GitUtils_RecurciveDependency(DEPEND TARGET_DEPENDS)
     endforeach()
     
+    message("[TARGET GIT INCLUDES] ${Target}")
+
     foreach(DEPEND ${TARGET_DEPENDS})
+        message("    ${DEPEND}")
         target_include_directories(${TARGET} PRIVATE ${DEPEND})
     endforeach()
+    message("[END] ${Target}")
 endfunction()
