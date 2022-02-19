@@ -11,6 +11,7 @@ endif()
 function(__GitUtils_DefineIncludeMapItem PROJECT)
     get_property(HAS_PROJECT_INCLUDE GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${PROJECT} DEFINED)
     if (NOT ${HAS_PROJECT_INCLUDE})
+        message("define GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${PROJECT}")
         define_property(GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${PROJECT}
                         BRIEF_DOCS "Project ${PROJECT} git repository include property"
                         FULL_DOCS "Project ${PROJECT} git repository property with include paths list")
