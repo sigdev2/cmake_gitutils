@@ -11,7 +11,6 @@ endif()
 function(__GitUtils_DefineIncludeMapItem PROJECT)
     get_property(HAS_PROJECT_INCLUDE GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${PROJECT} DEFINED)
     if (NOT ${HAS_PROJECT_INCLUDE})
-        message("define GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${PROJECT}")
         define_property(GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${PROJECT}
                         BRIEF_DOCS "Project ${PROJECT} git repository include property"
                         FULL_DOCS "Project ${PROJECT} git repository property with include paths list")
@@ -21,7 +20,7 @@ endfunction()
 
 
 function(__GitUtils_AppendIncludeMapItem PROJECT PATH)
-    __GitUtils_DefineIncludeMapItem(PROJECT)
+    __GitUtils_DefineIncludeMapItem(${PROJECT})
     get_property(PROJECT_INCLUDE_LIST GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${PROJECT})
     if (NOT (${PATH} IN_LIST PROJECT_INCLUDE_LIST))
         list(APPEND PROJECT_INCLUDE_LIST ${PATH})
@@ -31,7 +30,7 @@ endfunction()
 
 
 function(__GitUtils_ResetIncludeMapItem PROJECT)
-    __GitUtils_DefineIncludeMapItem(PROJECT)
+    __GitUtils_DefineIncludeMapItem(${PROJECT})
     set_property(GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_INCLUDE_MAP_${PROJECT} "")
 endfunction()
 
@@ -48,7 +47,7 @@ endfunction()
 
 
 function(__GitUtils_AppendDependencyMapItem PROJECT DEPEND)
-    __GitUtils_DefineDependencyMapItem(PROJECT)
+    __GitUtils_DefineDependencyMapItem(${PROJECT})
     get_property(PROJECT_DEPENDS_LIST GLOBAL PROPERTY GLOBAL_GIT_UTILS_PROJECT_DEPENDENCY_MAP_${PROJECT})
     if (NOT (${DEPEND} IN_LIST PROJECT_DEPENDS_LIST))
         list(APPEND PROJECT_DEPENDS_LIST ${DEPEND})
@@ -171,7 +170,7 @@ function(GitUtils_Depends PROJECT)
     message("[DEPENDENCY GIT] ${PROJECT}: ${GIT_ARGS_DEPENDS}")
 
     foreach(DEPEND ${GIT_ARGS_DEPENDS})
-        __GitUtils_AppendDependencyMapItem(PROJECT ${DEPEND})
+        __GitUtils_AppendDependencyMapItem(${PROJECT} ${DEPEND})
     endforeach()
 endfunction()
 
@@ -187,7 +186,7 @@ function(GitUtils_TargetInclude TARGET)
         __GitUtils_RecurciveDependency(DEPEND TARGET_DEPENDS)
     endforeach()
     
-    message("[TARGET GIT INCLUDES] ${Target}")
+    message("[TARGET GIT INCLUDES] ${TARGET}")
 
     foreach(DEPEND ${TARGET_DEPENDS})
         message("    ${DEPEND}")
