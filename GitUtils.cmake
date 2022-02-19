@@ -189,7 +189,7 @@ function(GitUtils_TargetInclude TARGET)
 
     foreach(DEPEND ${TARGET_DEPENDS})
         message("    ${DEPEND}")
-        target_include_directories(${TARGET} PRIVATE ${DEPEND})
     endforeach()
     message("[END] ${TARGET}")
+    target_include_directories(${TARGET} PRIVATE ${TARGET_DEPENDS})
 endfunction()
