@@ -157,7 +157,6 @@ function(GitUtils_Define PROJECT GIT_URL)
 
         set_property(GLOBAL APPEND PROPERTY GLOBAL_GIT_UTILS_PROJECTS_LIST ${FULL_PROJECT_NAME})
     endif()
-
 endfunction()
 
 
@@ -183,7 +182,7 @@ function(GitUtils_TargetInclude TARGET)
     
     set(TARGET_DEPENDS "")
     foreach(DEPEND ${GIT_ARGS_DEPENDS})
-        __GitUtils_RecurciveDependency(DEPEND TARGET_DEPENDS)
+        __GitUtils_RecurciveDependency(${DEPEND} TARGET_DEPENDS)
     endforeach()
     
     message("[TARGET GIT INCLUDES] ${TARGET}")
@@ -192,5 +191,5 @@ function(GitUtils_TargetInclude TARGET)
         message("    ${DEPEND}")
         target_include_directories(${TARGET} PRIVATE ${DEPEND})
     endforeach()
-    message("[END] ${Target}")
+    message("[END] ${TARGET}")
 endfunction()
