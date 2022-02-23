@@ -8,6 +8,7 @@ CMakeLists.txt of libA:
     ...
     
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake_gitutils")
+    include(GitUtils)
     
     ...
     
@@ -21,6 +22,7 @@ CMakeLists.txt of Application:
     ...
     
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake_gitutils")
+    include(GitUtils)
     
     ...
     
