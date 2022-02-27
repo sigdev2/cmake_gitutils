@@ -86,7 +86,7 @@ endfunction()
 
 function(GitUtils_Define PROJECT GIT_URL)
     set(ARGS_OPT FREEZE PULL LOCAL OVERRIDE REMOTE_SYNC NO_SUBMAKE SUBMODULES)
-    set(ARGS_ONE TAG FOLDER INCLUDE BUILD)
+    set(ARGS_ONE TAG FOLDER FOLDER_ABS INCLUDE BUILD)
     set(ARGS_LIST REMOTES)
     cmake_parse_arguments(GIT_ARGS "${ARGS_OPT}" "${ARGS_ONE}" "${ARGS_LIST}" ${ARGN})
 
@@ -117,9 +117,13 @@ function(GitUtils_Define PROJECT GIT_URL)
             __GitUtils_ResetIncludeMapItem(${PROJECT})
         endif()
         
-        __GitUtils_AppendIncludeMapItem(${PROJECT} ${INTERNAL_CMAKE_SOURCE}/${GIT_ARGS_FOLDER}/)
+        if (NOT DEFINED GIT_ARGS_FOLDER_ABS)
+            set(GIT_ARGS_FOLDER_ABS ${INTERNAL_CMAKE_SOURCE}/${GIT_ARGS_FOLDER}/)
+        endif()
+        
+        __GitUtils_AppendIncludeMapItem(${PROJECT} ${GIT_ARGS_FOLDER_ABS})
 
-        get_filename_component(GIT_FOLDER ${INTERNAL_CMAKE_SOURCE}/${GIT_ARGS_FOLDER}/${FULL_PROJECT_NAME} ABSOLUTE)
+        get_filename_component(GIT_FOLDER ${GIT_ARGS_FOLDER_ABS}${FULL_PROJECT_NAME} ABSOLUTE)
         get_filename_component(ABS_GIT_URL "${GIT_URL}" ABSOLUTE)
         
         set(REMOTE_MAP "")
